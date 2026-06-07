@@ -175,10 +175,10 @@ class _LazyPipelineDescriptor:
 
     _resolved = None
 
-    def __set_name__(self, owner, name):
+    def __set_name__(self, _owner, name):
         self._name = name
 
-    def __get__(self, obj, objtype=None):
+    def __get__(self, _obj, _objtype=None):
         if self._resolved is None:
             self._resolved = _get_stock_analysis_pipeline()
         return self._resolved
@@ -673,8 +673,17 @@ def start_api_server(host: str, port: int, config: Config) -> None:
         port: 监听端口
         config: 配置对象
     """
+    import importlib
     import threading
-    import uvicorn
+
+    try:
+        uvicorn = importlib.import_module("uvicorn")
+    except ImportError:
+        logger.error(
+            "无法启动 FastAPI 服务：uvicorn 未安装。"
+            " 请运行 `pip install uvicorn` 或检查您的环境依赖。"
+        )
+        return
 
     def run_server():
         level_name = (config.log_level or "INFO").lower()
@@ -689,12 +698,6 @@ def start_api_server(host: str, port: int, config: Config) -> None:
     thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
     logger.info(f"FastAPI 服务已启动: http://{host}:{port}")
-
-
-def _is_truthy_env(var_name: str, default: str = "true") -> bool:
-    """Parse common truthy / falsy environment values."""
-    value = os.getenv(var_name, default).strip().lower()
-    return value not in {"0", "false", "no", "off"}
 
 
 def start_bot_stream_clients(config: Config) -> None:
